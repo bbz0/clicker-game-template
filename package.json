@@ -1,0 +1,22 @@
+{
+  "name": "basic-clicker-template",
+  "version": "1.0.0",
+  "description": "A Basic Clicker Template",
+  "main": "app.js",
+  "scripts": {
+    "deploy": "gh-pages"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bbz0/clicker-game-template.git"
+  },
+  "author": "Zach Manabat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bbz0/clicker-game-template/issues"
+  },
+  "homepage": "https://bbzo.github.io/clicker-game-template",
+  "dependencies": {
+    "gh-pages": "^2.0.1"
+  }
+}
