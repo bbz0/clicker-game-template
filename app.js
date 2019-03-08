@@ -269,7 +269,7 @@ var mainController = (function(dataCtrl, UICtrl) {
 
 	return {
 		init: function() {
-			dataButton();
+			// dataButton();
 			loadResourcesData();
 			loadBuildingsData();
 			setLoop();
