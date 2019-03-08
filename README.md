@@ -1,4 +1,4 @@
-# [Basic Clicker Game Template]("https://bbz0.github.io/clicker-game-template/" "Basic Clicker Game Template")
+# [Basic Clicker Game Template](https://bbz0.github.io/clicker-game-template/ "Basic Clicker Game Template")
 ## tl;dr
 A Basic clicker game template made with javascript.
 
