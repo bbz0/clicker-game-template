@@ -177,12 +177,6 @@ var mainController = (function(dataCtrl, UICtrl) {
 		return name;
 	};
 
-	var dataButton = function() {
-		document.querySelector('#data--btn').addEventListener('click', function() {
-			console.log(dataCtrl.getData());
-		});
-	};
-
 	var loadBuildingsData = function() {
 		var buildings;
 
