@@ -1,5 +1,4 @@
 # Basic Clicker Template
----
 ## tl;dr
 A Basic clicker game template made with javascript.
 
