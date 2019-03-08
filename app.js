@@ -100,8 +100,6 @@ var dataController = (function() {
 
 var UIController = (function() {
 
-	'(<span id="%idprod%--prodnum">%prod%</span> / s)'
-
 	var resourceStatUI = '<div class="col-md-2"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%id%--listnum">%num%</h1><h6>(<span id="%idprod%--prod">%prod%</span> / s)</h6></div></div></div>';
 
 	var buildingStatUI = '<div class="col-md-2"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%id%--listnum">%num%</h1></div></div></div>';
