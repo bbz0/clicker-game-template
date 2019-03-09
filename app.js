@@ -1,14 +1,66 @@
-var dataController = (function() {
+var dataBase = (function() {
+
+	var resources = [
+		{
+			name: 'seed'
+		},
+	];
+
+	var buildings = [
+		{
+			name: 'plant',
+			production: 1,
+			initCost: 10,
+			resource: 'seed'
+		},
+		{
+			name: 'tree',
+			production: 5,
+			initCost: 25,
+			resource: 'seed'
+		}
+	];
+
 	var data = {
 		resources: [],
 		buildings: []
 	};
 
-	var Resource = function(name) {
-		this.num = 0;
-		this.name = name;
-		this.totalProd = 0;
-		data.resources.push(this);
+	return {
+
+		getResources: function() {
+			return resources;
+		},
+
+		getBuildings: function() {
+			return buildings;
+		},
+
+		getData: function() {
+			return data;
+		},
+
+		getSingleData: function(name, type) {
+			for(var i = 0; i < data[type].length; i++) {
+				if(data[type][i].name === name) {
+					return data[type][i];
+				}
+			}
+		},
+
+	};
+
+})();
+
+
+var dataController = (function(db) {
+
+	var Resource = function(params) {
+		this.num = params.num || 0;
+		this.name = params.name;
+		this.totalProd = params.totalProd || 0;
+		db.getData().resources.push(this);
+		// db.getData().resources.shift();
 	};
 
 	Resource.prototype.increment = function() {
@@ -23,28 +75,46 @@ var dataController = (function() {
 		this.num += (this.totalProd / 100);
 	};
 
-	var seeds = new Resource('seed');
-
-	var Building = function(name, production, cost, resource) {
-		this.name = name;
-		this.production = production;
-		this.resource = resource;
-		this.initCost = cost;
-		this.cost = cost;
-		this.num = 0;
-		data.buildings.push(this);
+	var Building = function(params) {
+		this.name = params.name;
+		this.production = params.production;
+		this.resource = params.resource;
+		this.initCost = params.initCost;
+		this.cost = params.cost || params.initCost;
+		this.num = params.num || 0;
+		db.getData().buildings.push(this);
+		// db.getData().buildings.shift();
 	};
 
 	Building.prototype.calculateCost = function() {
 		this.cost = Math.floor(this.initCost * Math.pow(1.1, this.num));
 	};
 
-	var plant = new Building('plant', 1, 10, 'seed');
-	var tree = new Building('tree', 5, 25, 'seed');
-
 	return {
 
+		instantiateResources: function() {
+			var newResource, resources;
+			
+			resources = db.getResources();
+
+			for(var i = 0; i < resources.length; i++) {
+				newResource = new Resource(resources[i]);
+			}
+		},
+
+		instantiateBuildings: function() {
+			var newBuilding, buildings;
+
+			buildings = db.getBuildings();
+
+			for(var i = 0; i < buildings.length; i++) {
+				newBuilding = new Building(buildings[i]);
+			}
+		},
+
 		checkPrices: function(building) {
+			var data = db.getData();
+
 			for(var x = 0; x < data.resources.length; x++) {
 				if(building.resource === data.resources[x].name) {
 					if(data.resources[x].num >= building.cost) {
@@ -57,20 +127,10 @@ var dataController = (function() {
 		},
 
 		prodResources: function() {
+			var data = db.getData();
+
 			for(var i = 0; i < data.resources.length; i++) {
 				data.resources[i].produce();
-			}
-		},
-
-		getData: function() {
-			return data;
-		},
-
-		getSingleData: function(name, type) {
-			for(var i = 0; i < data[type].length; i++) {
-				if(data[type][i].name === name) {
-					return data[type][i];
-				}
 			}
 		},
 
@@ -92,13 +152,56 @@ var dataController = (function() {
 			} else {
 				return 'Not enough resources!';
 			}
+		},
+
+		saveData: function() {
+			localStorage.setItem('save', JSON.stringify(db.getData()));
+		},
+
+		loadData: function() {
+			var loadedData, loadedResource, loadedBuilding;
+
+			if(localStorage.getItem('save') !== null) {
+				loadedData = JSON.parse(localStorage.getItem('save'));
+
+				for(var i = 0; i < loadedData.resources.length; i++) {
+					loadedResource = loadedData.resources[i];
+
+					loadedResource = new Resource({
+						name: loadedResource.name,
+						totalProd: loadedResource.totalProd,
+						num: loadedResource.num
+					});
+					db.getData().resources.shift();
+				}
+
+				for(var i = 0; i < loadedData.buildings.length; i++) {
+					loadedBuilding = loadedData.buildings[i];
+
+					loadedBuilding = new Building({
+						name: loadedBuilding.name,
+						production: loadedBuilding.production,
+						resource: loadedBuilding.resource,
+						initCost: loadedBuilding.initCost,
+						cost: loadedBuilding.cost,
+						num: loadedBuilding.num
+					});
+					db.getData().buildings.shift();
+				}
+			}
+		},
+
+		deleteData: function() {
+			localStorage.removeItem('save');
 		}
 	};
 
-})();
+})(dataBase);
 
 
 var UIController = (function() {
+
+	var messageUI = '<div class="alert alert-%type%" id="%name%--message">%message%</div>';
 
 	var resourceStatUI = '<div class="col-md-2"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%id%--listnum">%num%</h1><h6>(<span id="%idprod%--prod">%prod%</span> / s)</h6></div></div></div>';
 
@@ -161,27 +264,69 @@ var UIController = (function() {
 			} else {
 				document.querySelector('#' + building.name + '--getbtn').setAttribute('disabled', '');
 			}
+		},
+
+		generateMessage: function(type, message, name) {
+			var msgHtml;
+
+			msgHtml = messageUI.replace('%type%', type);
+			msgHtml = msgHtml.replace('%name%', name);
+			msgHtml = msgHtml.replace('%message%', message);
+
+			document.querySelector('#message--container').insertAdjacentHTML('afterbegin', msgHtml);
+
+			setTimeout(function() {
+				document.querySelector('#message--container').removeChild(document.querySelector('#' + name + '--message'));
+			}, 3000);
 		}
 	};
 
 })();
 
 
-var mainController = (function(dataCtrl, UICtrl) {
+var mainController = (function(dataCtrl, UICtrl, db) {
 
-	var parseEvent = function(event) {
-		var name;
+	// INITIALIZATION FUNCTIONS
 
-		name = event.originalTarget.attributes.id.textContent;
-		name = name.replace('--getbtn', '');
-		return name;
+	// Instantiate data from the 'database'
+	var instantiateData = function() {
+		dataCtrl.instantiateResources();
+		dataCtrl.instantiateBuildings();
 	};
 
+	// Set Event Listeners for non-dynamic buttons
+	var setEventListener = function() {
+		document.querySelector('#save--btn').addEventListener('click', saveGame);
+
+		document.querySelector('#delete--btn').addEventListener('click', deleteGame);
+	};
+
+	var saveGame = function() {
+		dataCtrl.saveData();
+		UICtrl.generateMessage('success', 'Game saved.', 'save');
+	};
+
+	var deleteGame = function() {
+		dataCtrl.deleteData();
+		UICtrl.generateMessage('danger', 'Saved game deleted.', 'delete');
+	}
+
+	// load data from local storage
+	var loadGame = function() {
+		try {
+			dataCtrl.loadData();
+		}
+		catch(e) {
+			console.log(e);
+		}
+	};
+
+	// load and generate building data
 	var loadBuildingsData = function() {
 		var buildings;
 
 		// 1. Get Buildings Data
-		buildings = dataCtrl.getData().buildings;
+		buildings = db.getData().buildings;
 
 		for(var i = 0; i < buildings.length; i++) {
 
@@ -193,11 +338,12 @@ var mainController = (function(dataCtrl, UICtrl) {
 		}
 	};
 
+	// load and generate resources data
 	var loadResourcesData = function() {
 		var resources;
 
 		// 1. Get Resources Data
-		resources = dataCtrl.getData().resources;
+		resources = db.getData().resources;
 
 		for(var i = 0; i < resources.length; i++) {
 
@@ -209,11 +355,12 @@ var mainController = (function(dataCtrl, UICtrl) {
 		}	
 	};
 
+	// set the game loop
 	var setLoop = function() {
 		var resources, buildings, isAffordable;
 
-		resources = dataCtrl.getData().resources;
-		buildings = dataCtrl.getData().buildings;
+		resources = db.getData().resources;
+		buildings = db.getData().buildings;
 
 		window.setInterval(function() {
 
@@ -234,11 +381,21 @@ var mainController = (function(dataCtrl, UICtrl) {
 		}, 10);
 	};
 
+	// helper function to for parsing listener events
+	var parseEvent = function(event) {
+		var name;
+
+		name = event.originalTarget.attributes.id.textContent;
+		name = name.replace('--getbtn', '');
+		return name;
+	};
+
+	// for incrementing resources
 	var incrementResource = function(event) {
 		var resourceName, resource, currNum;
 
 		resourceName = parseEvent(event);
-		resource = dataCtrl.getSingleData(resourceName, 'resources');
+		resource = db.getSingleData(resourceName, 'resources');
 
 		// 1. Add 1 to current number of resource
 		currNum = dataCtrl.incResource(resource);
@@ -247,6 +404,7 @@ var mainController = (function(dataCtrl, UICtrl) {
 		UICtrl.updateResourceUI(resource);
 	};
 
+	// for buying buildings
 	var buyBuilding = function(event) {
 		var buildingName, building, resource, result;
 
@@ -254,10 +412,10 @@ var mainController = (function(dataCtrl, UICtrl) {
 		buildingName = parseEvent(event);
 
 		// get single building data from event
-		building = dataCtrl.getSingleData(buildingName, 'buildings');
+		building = db.getSingleData(buildingName, 'buildings');
 
 		// get the required resource data
-		resource = dataCtrl.getSingleData(building.resource, 'resources');
+		resource = db.getSingleData(building.resource, 'resources');
 
 		// building buying process(calculation of costs, recalculations, etc.)
 		result = dataCtrl.buyBuilding(building, resource);
@@ -270,12 +428,15 @@ var mainController = (function(dataCtrl, UICtrl) {
 	return {
 		init: function() {
 			// dataButton();
+			instantiateData();
+			loadGame();
 			loadResourcesData();
 			loadBuildingsData();
 			setLoop();
+			setEventListener();
 		}
 	};
 
-})(dataController, UIController);
+})(dataController, UIController, dataBase);
 
 mainController.init();
