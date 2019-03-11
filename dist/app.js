@@ -40,6 +40,13 @@ var dataBase = (function() {
 			return data;
 		},
 
+		resetData: function() {
+			data = {
+				resources: [],
+				buildings: []
+			}
+		},
+
 		getSingleData: function(name, type) {
 			for(var i = 0; i < data[type].length; i++) {
 				if(data[type][i].name === name) {
@@ -60,7 +67,6 @@ var dataController = (function(db) {
 		this.name = params.name;
 		this.totalProd = params.totalProd || 0;
 		db.getData().resources.push(this);
-		// db.getData().resources.shift();
 	};
 
 	Resource.prototype.increment = function() {
@@ -83,7 +89,6 @@ var dataController = (function(db) {
 		this.cost = params.cost || params.initCost;
 		this.num = params.num || 0;
 		db.getData().buildings.push(this);
-		// db.getData().buildings.shift();
 	};
 
 	Building.prototype.calculateCost = function() {
@@ -201,15 +206,23 @@ var dataController = (function(db) {
 
 var UIController = (function() {
 
+	var containers = {
+		resources: document.querySelector('#resources--container'),
+		resourcesList: document.querySelector('#resources--list'),
+		buildings: document.querySelector('#buildings--container'),
+		buildingsList: document.querySelector('#buildings--list'),
+		messages: document.querySelector('#message--container')
+	};
+
 	var messageUI = '<div class="alert alert-%type%" id="%name%--message">%message%</div>';
 
-	var resourceStatUI = '<div class="col-md-2"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%id%--listnum">%num%</h1><h6>(<span id="%idprod%--prod">%prod%</span> / s)</h6></div></div></div>';
+	var resourceStatUI = '<div class="col-md-2" id="%id%--list"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%idlist%--listnum">%num%</h1><h6>(<span id="%idprod%--prod">%prod%</span> / s)</h6></div></div></div>';
 
-	var buildingStatUI = '<div class="col-md-2"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%id%--listnum">%num%</h1></div></div></div>';
+	var buildingStatUI = '<div class="col-md-2" id="%id%--list"><div class="card"><div class="card-body text-center"><h5>%listName%s:</h5><h1 id="%idnum%--listnum">%num%</h1></div></div></div>';
 
-	var resourceUI = '<div class="col-md-3"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><button class="btn btn-primary" id="%id%--getbtn">Get</button></div></div></div>';
+	var resourceUI = '<div class="col-md-3" id="%id%--get"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><button class="btn btn-primary" id="%idbuy%--getbtn">Get</button></div></div></div>';
 
-	var buildingUI = '<div class="col-md-3"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><p class="card-text">Production: %production%<br>Cost: <span id="%idcost%--cost">%cost%</span> %resource%s</p><button class="btn btn-primary" id="%id%--getbtn">Buy</button></div></div></div>';
+	var buildingUI = '<div class="col-md-3" id="%id%--get"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><p class="card-text">Production: %production%<br>Cost: <span id="%idcost%--cost">%cost%</span> %resource%s</p><button class="btn btn-primary" id="%idbuy%--getbtn">Buy</button></div></div></div>';
 
 	return {
 		generateUI: function(data, type) {
@@ -221,30 +234,34 @@ var UIController = (function() {
 			if(type === 'resource') {
 				listHTML = resourceStatUI.replace('%listName%', dataNameUpper);
 				listHTML = listHTML.replace('%id%', dataName);
-				listHTML = listHTML.replace('%num%', data.num);
+				listHTML = listHTML.replace('%idlist%', dataName);
 				listHTML = listHTML.replace('%idprod%', dataName);
+				listHTML = listHTML.replace('%num%', data.num);
 				listHTML = listHTML.replace('%prod%', data.totalProd);
 
 				cardHtml = resourceUI.replace('%name%', dataNameUpper);
 				cardHtml = cardHtml.replace('%id%', dataName);
+				cardHtml = cardHtml.replace('%idbuy%', dataName);
 
-				document.querySelector('#resources--container').insertAdjacentHTML('beforeend', cardHtml);
-				document.querySelector('#resources--list').insertAdjacentHTML('beforeend', listHTML);
+				containers.resources.insertAdjacentHTML('beforeend', cardHtml);
+				containers.resourcesList.insertAdjacentHTML('beforeend', listHTML);
 
 			} else {
 				listHTML = buildingStatUI.replace('%listName%', dataNameUpper);
 				listHTML = listHTML.replace('%id%', dataName);
+				listHTML = listHTML.replace('%idnum%', dataName);
 				listHTML = listHTML.replace('%num%', data.num);
 
 				cardHtml = buildingUI.replace('%name%', dataNameUpper);
 				cardHtml = cardHtml.replace('%id%', dataName);
-				cardHtml = cardHtml.replace('%production%', data.production);
 				cardHtml = cardHtml.replace('%idcost%', dataName);
+				cardHtml = cardHtml.replace('%idbuy%', dataName);
+				cardHtml = cardHtml.replace('%production%', data.production);
 				cardHtml = cardHtml.replace('%cost%', data.cost);
 				cardHtml = cardHtml.replace('%resource%', data.resource);
 
-				document.querySelector('#buildings--container').insertAdjacentHTML('beforeend', cardHtml);
-				document.querySelector('#buildings--list').insertAdjacentHTML('beforeend', listHTML);	
+				containers.buildings.insertAdjacentHTML('beforeend', cardHtml);
+				containers.buildingsList.insertAdjacentHTML('beforeend', listHTML);	
 			}
 		},
 
@@ -273,11 +290,24 @@ var UIController = (function() {
 			msgHtml = msgHtml.replace('%name%', name);
 			msgHtml = msgHtml.replace('%message%', message);
 
-			document.querySelector('#message--container').insertAdjacentHTML('afterbegin', msgHtml);
+			containers.messages.insertAdjacentHTML('afterbegin', msgHtml);
 
 			setTimeout(function() {
-				document.querySelector('#message--container').removeChild(document.querySelector('#' + name + '--message'));
+				containers.messages.removeChild(document.querySelector('#' + name + '--message'));
 			}, 3000);
+		},
+
+		resetUI: function(resources, buildings) {
+
+			for(var i = 0; i < resources.length; i++) {
+				containers.resources.removeChild(document.querySelector('#' + resources[i].name + '--get'));
+				containers.resourcesList.removeChild(document.querySelector('#' + resources[i].name + '--list'));
+			}
+
+			for(var i = 0; i < buildings.length; i++) {
+				containers.buildings.removeChild(document.querySelector('#' + buildings[i].name + '--get'));
+				containers.buildingsList.removeChild(document.querySelector('#' + buildings[i].name + '--list'));
+			}
 		}
 	};
 
@@ -292,36 +322,6 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 	var instantiateData = function() {
 		dataCtrl.instantiateResources();
 		dataCtrl.instantiateBuildings();
-	};
-
-	// Set Event Listeners for non-dynamic buttons
-	var setEventListener = function() {
-
-		// manual save button
-		document.querySelector('#save--btn').addEventListener('click', saveGame);
-
-		// delete save button
-		document.querySelector('#delete--btn').addEventListener('click', deleteGame);
-	};
-
-	var saveGame = function() {
-		dataCtrl.saveData();
-		UICtrl.generateMessage('success', 'Game saved.', 'save');
-	};
-
-	var deleteGame = function() {
-		dataCtrl.deleteData();
-		UICtrl.generateMessage('danger', 'Saved game deleted.', 'delete');
-	}
-
-	// load data from local storage
-	var loadGame = function() {
-		try {
-			dataCtrl.loadData();
-		}
-		catch(e) {
-			console.log(e);
-		}
 	};
 
 	// load and generate building data
@@ -390,6 +390,51 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 			}
 
 		}, 10);
+	};
+
+	// Save game
+	var saveGame = function() {
+		dataCtrl.saveData();
+		UICtrl.generateMessage('success', 'Game saved.', 'save');
+	};
+
+	// Delete game
+	var deleteGame = function() {
+		dataCtrl.deleteData();
+		UICtrl.generateMessage('danger', 'Saved game deleted.', 'delete');
+	};
+
+	// Reset game
+	// var resetGame = function() {
+	// 	UICtrl.resetUI(db.getData().resources, db.getData().buildings);
+	// 	db.resetData();
+	// 	instantiateData();
+	// 	// loadResourcesData();
+	// 	// loadBuildingsData();
+	// 	// setLoop();
+	// };
+
+	// Set Event Listeners for non-dynamic buttons
+	var setEventListener = function() {
+
+		// manual save button
+		document.querySelector('#save--btn').addEventListener('click', saveGame);
+
+		// delete save button
+		document.querySelector('#delete--btn').addEventListener('click', deleteGame);
+
+		// reset game button
+		// document.querySelector('#reset--btn').addEventListener('click', resetGame);
+	};
+
+	// load data from local storage
+	var loadGame = function() {
+		try {
+			dataCtrl.loadData();
+		}
+		catch(e) {
+			console.log(e);
+		}
 	};
 
 	// GAME FUNCTIONS
