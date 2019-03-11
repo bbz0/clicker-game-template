@@ -296,8 +296,11 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 
 	// Set Event Listeners for non-dynamic buttons
 	var setEventListener = function() {
+
+		// manual save button
 		document.querySelector('#save--btn').addEventListener('click', saveGame);
 
+		// delete save button
 		document.querySelector('#delete--btn').addEventListener('click', deleteGame);
 	};
 
@@ -357,12 +360,14 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 
 	// set the game loop
 	var setLoop = function() {
-		var resources, buildings, isAffordable;
+		var resources, buildings, isAffordable, totalSec;
 
 		resources = db.getData().resources;
 		buildings = db.getData().buildings;
+		totalSec = 0;
 
 		window.setInterval(function() {
+			totalSec += 10;
 
 			// increment all resources depending on total production every sec
 			dataCtrl.prodResources();
@@ -378,8 +383,16 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 				UICtrl.buildingAvailability(buildings[i], isAffordable);
 			}
 
+			// autosave every minute
+			if(totalSec === 60000) {
+				saveGame();
+				totalSec = 0;
+			}
+
 		}, 10);
 	};
+
+	// GAME FUNCTIONS
 
 	// helper function to for parsing listener events
 	var parseEvent = function(event) {
