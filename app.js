@@ -1,17 +1,19 @@
 var dataBase = (function() {
 
-	var resources = [
+	var resourcesBase = [
 		{
 			name: 'seed'
 		},
 	];
 
-	var buildings = [
+	var buildingsBase = [
 		{
 			name: 'plant',
 			production: 1,
 			initCost: 10,
-			resource: 'seed'
+			resource: 'seed',
+			upgrades: [
+			]
 		},
 		{
 			name: 'tree',
@@ -21,25 +23,52 @@ var dataBase = (function() {
 		}
 	];
 
+	var upgradesBase = [
+		{
+			name: 'UpgradeOne',
+			building: 'plant',
+			resource: 'seed',
+			upgrade: 2,
+			req: 10,
+			cost: 100,
+			desc: '+100% production'
+		},
+		{
+			name: 'UpgradeTwo',
+			building: 'plant',
+			resource: 'seed',
+			upgrade: 4,
+			req: 20,
+			cost: 200,
+			desc: '+100% production'
+		}
+	];
+
 	var data = {
 		resources: [],
-		buildings: []
+		buildings: [],
+		upgrades: []
 	};
 
 	return {
 
 		getResources: function() {
-			return resources;
+			return resourcesBase;
 		},
 
 		getBuildings: function() {
-			return buildings;
+			return buildingsBase;
+		},
+
+		getUpgrades: function() {
+			return upgradesBase;
 		},
 
 		getData: function() {
 			return data;
 		},
 
+		// DO NOT IMPLEMENT YET
 		resetData: function() {
 			data = {
 				resources: [],
@@ -88,11 +117,41 @@ var dataController = (function(db) {
 		this.initCost = params.initCost;
 		this.cost = params.cost || params.initCost;
 		this.num = params.num || 0;
+
 		db.getData().buildings.push(this);
 	};
 
 	Building.prototype.calculateCost = function() {
 		this.cost = Math.floor(this.initCost * Math.pow(1.1, this.num));
+	};
+
+	var Upgrade = function(params) {
+		this.name = params.name;
+		this.building = params.building;
+		this.resource = params.resource;
+		this.upgrade = params.upgrade;
+		this.req = params.req;
+		this.cost = params.cost;
+		this.desc = params.desc;
+		this.isBought = false;
+
+		db.getData().upgrades.push(this);
+	}
+
+	Upgrade.prototype.buyUpgrade = function(resource, building) {
+		if(resource.num >= this.cost) {
+			resource.num = resource.num - this.cost;
+			resource.totalProd *= this.upgrade;
+			building.production *= this.upgrade;
+			this.isBought = true;
+
+			return {
+				resource: resource,
+				building: building
+			}
+		} else {
+			return 'Not Enough Resources!';
+		}
 	};
 
 	return {
@@ -117,12 +176,50 @@ var dataController = (function(db) {
 			}
 		},
 
-		checkPrices: function(building) {
-			var data = db.getData();
+		instantiateUpgrades: function() {
+			var newUpgrade, upgrades;
 
-			for(var x = 0; x < data.resources.length; x++) {
-				if(building.resource === data.resources[x].name) {
-					if(data.resources[x].num >= building.cost) {
+			upgrades = db.getUpgrades();
+
+			for(var i = 0; i < upgrades.length; i++) {
+				newUpgrade = new Upgrade(upgrades[i]);
+			}
+		},
+
+		checkPrices: function(building) {
+			var resources = db.getData().resources;
+
+			for(var x = 0; x < resources.length; x++) {
+				if(building.resource === resources[x].name) {
+					if(resources[x].num >= building.cost) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}
+		},
+
+		checkReq: function(upgrade) {
+			var buildings = db.getData().buildings;
+
+			for(var i = 0; i < buildings.length; i++) {
+				if(upgrade.building === buildings[i].name) {
+					if(buildings[i].num >= upgrade.req) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}
+		},
+
+		checkUpgradePrices: function(upgrade) {
+			var resources = db.getData().resources;
+
+			for(var i = 0; i < resources.length; i++) {
+				if(upgrade.resource === resources[i].name) {
+					if(resources[i].num >= upgrade.cost) {
 						return true;
 					} else {
 						return false;
@@ -211,7 +308,8 @@ var UIController = (function() {
 		resourcesList: document.querySelector('#resources--list'),
 		buildings: document.querySelector('#buildings--container'),
 		buildingsList: document.querySelector('#buildings--list'),
-		messages: document.querySelector('#message--container')
+		messages: document.querySelector('#message--container'),
+		upgrades: document.querySelector('#upgrades--container')
 	};
 
 	var messageUI = '<div class="alert alert-%type%" id="%name%--message">%message%</div>';
@@ -222,7 +320,9 @@ var UIController = (function() {
 
 	var resourceUI = '<div class="col-md-3" id="%id%--get"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><button class="btn btn-primary" id="%idbuy%--getbtn">Get</button></div></div></div>';
 
-	var buildingUI = '<div class="col-md-3" id="%id%--get"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><p class="card-text">Production: %production%<br>Cost: <span id="%idcost%--cost">%cost%</span> %resource%s</p><button class="btn btn-primary" id="%idbuy%--getbtn">Buy</button></div></div></div>';
+	var buildingUI = '<div class="col-md-3" id="%id%--get"><div class="card"><div class="card-body"><h5 class="card-title">%name%s</h5><p class="card-text">Production: <span id="%idprod%--prod">%production%</span><br>Cost: <span id="%idcost%--cost">%cost%</span> %resource%s</p><button class="btn btn-primary" id="%idbuy%--getbtn">Buy</button></div></div></div>';
+
+	var upgradesUI = '<div class="col-md-3 invisible--upgrade" id="%idname%--get"><div class="card" ><div class="card-body"><p class="card-text">%desc%<br>Cost: %cost% %buildingResource%s</p><button class="btn btn-success" id="%idbuy%--getbtn">%name%</button></div></div></div>';
 
 	return {
 		generateUI: function(data, type) {
@@ -246,7 +346,7 @@ var UIController = (function() {
 				containers.resources.insertAdjacentHTML('beforeend', cardHtml);
 				containers.resourcesList.insertAdjacentHTML('beforeend', listHTML);
 
-			} else {
+			} else if(type === 'building') {
 				listHTML = buildingStatUI.replace('%listName%', dataNameUpper);
 				listHTML = listHTML.replace('%id%', dataName);
 				listHTML = listHTML.replace('%idnum%', dataName);
@@ -256,12 +356,25 @@ var UIController = (function() {
 				cardHtml = cardHtml.replace('%id%', dataName);
 				cardHtml = cardHtml.replace('%idcost%', dataName);
 				cardHtml = cardHtml.replace('%idbuy%', dataName);
+				cardHtml = cardHtml.replace('%idprod%', dataName);
 				cardHtml = cardHtml.replace('%production%', data.production);
 				cardHtml = cardHtml.replace('%cost%', data.cost);
 				cardHtml = cardHtml.replace('%resource%', data.resource);
 
 				containers.buildings.insertAdjacentHTML('beforeend', cardHtml);
-				containers.buildingsList.insertAdjacentHTML('beforeend', listHTML);	
+				containers.buildingsList.insertAdjacentHTML('beforeend', listHTML);
+
+			} else {
+
+				upgradeHtml = upgradesUI.replace('%idname%', data.name);
+				upgradeHtml = upgradeHtml.replace('%desc%', data.desc);
+				upgradeHtml = upgradeHtml.replace('%cost%', data.cost);
+				upgradeHtml = upgradeHtml.replace('%buildingResource%', data.resource);
+				upgradeHtml = upgradeHtml.replace('%idbuy%', data.name);
+				upgradeHtml = upgradeHtml.replace('%name%', data.name);
+
+				containers.upgrades.insertAdjacentHTML('beforeend', upgradeHtml);
+
 			}
 		},
 
@@ -271,16 +384,38 @@ var UIController = (function() {
 		},
 
 		updateBuildingUI: function(building) {
+
 			document.querySelector('#' + building.name + '--listnum').innerHTML = building.num;
 			document.querySelector('#' + building.name + '--cost').innerHTML = building.cost;
+			document.querySelector('#' + building.name + '--prod').innerHTML = building.production;
 		},
 
-		buildingAvailability: function(building, isAffordable) {
-			if(isAffordable) {
-				document.querySelector('#' + building.name + '--getbtn').removeAttribute('disabled', '');
-			} else {
-				document.querySelector('#' + building.name + '--getbtn').setAttribute('disabled', '');
+		isClickable: function(object, isAffordable) {
+			var objectDOM;
+
+			objectDOM = document.querySelector('#' + object.name + '--getbtn');
+
+			if(isAffordable && objectDOM !== null) {
+				objectDOM.removeAttribute('disabled', '');
+			} else if(objectDOM !== null) {
+				objectDOM.setAttribute('disabled', '');
 			}
+		},
+
+		upgradeAvailability: function(upgrade, isAvailable) {
+			var upgradeHtml, upgradeDOM;
+
+			upgradeDOM = document.querySelector('#' + upgrade.name + '--get');
+
+			if(isAvailable && upgradeDOM !== null) {
+				upgradeDOM.classList.remove('invisible--upgrade');
+			} else if(upgradeDOM !== null) {
+				upgradeDOM.classList.add('invisible--upgrade');
+			}
+		},
+
+		removeUpgrade: function(upgrade) {
+			containers.upgrades.removeChild(document.querySelector('#' + upgrade.name + '--get'));
 		},
 
 		generateMessage: function(type, message, name) {
@@ -297,6 +432,7 @@ var UIController = (function() {
 			}, 3000);
 		},
 
+		// DO NOT IMPLEMENT
 		resetUI: function(resources, buildings) {
 
 			for(var i = 0; i < resources.length; i++) {
@@ -322,6 +458,7 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 	var instantiateData = function() {
 		dataCtrl.instantiateResources();
 		dataCtrl.instantiateBuildings();
+		dataCtrl.instantiateUpgrades();
 	};
 
 	// load and generate building data
@@ -358,12 +495,25 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		}	
 	};
 
+	var loadUpgradesData = function() {
+		var upgrades;
+
+		upgrades = db.getData().upgrades;
+
+		for(var i = 0; i < upgrades.length; i++) {
+			UICtrl.generateUI(upgrades[i], 'upgrade');
+
+			document.querySelector('#' + upgrades[i].name + '--getbtn').addEventListener('click', buyUpgrade);
+		}
+	}
+
 	// set the game loop
 	var setLoop = function() {
-		var resources, buildings, isAffordable, totalSec;
+		var resources, buildings, upgrades, isAffordable, isAvailable, totalSec;
 
 		resources = db.getData().resources;
 		buildings = db.getData().buildings;
+		upgrades = db.getData().upgrades;
 		totalSec = 0;
 
 		window.setInterval(function() {
@@ -380,7 +530,15 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 			// constantly check for prices, enable building button if price is met
 			for(var i = 0; i < buildings.length; i++) {
 				isAffordable = dataCtrl.checkPrices(buildings[i]);
-				UICtrl.buildingAvailability(buildings[i], isAffordable);
+				UICtrl.isClickable(buildings[i], isAffordable);
+			}
+
+			for(var i = 0; i < upgrades.length; i++) {
+				isAvailable = dataCtrl.checkReq(upgrades[i]);
+				UICtrl.upgradeAvailability(upgrades[i], isAvailable);
+
+				isAffordable = dataCtrl.checkUpgradePrices(upgrades[i]);
+				UICtrl.isClickable(upgrades[i], isAffordable)
 			}
 
 			// autosave every minute
@@ -404,6 +562,7 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		UICtrl.generateMessage('danger', 'Saved game deleted.', 'delete');
 	};
 
+	// DO NOT IMPLEMENT
 	// Reset game
 	// var resetGame = function() {
 	// 	UICtrl.resetUI(db.getData().resources, db.getData().buildings);
@@ -423,6 +582,7 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		// delete save button
 		document.querySelector('#delete--btn').addEventListener('click', deleteGame);
 
+		// DO NOT IMPLEMENT
 		// reset game button
 		// document.querySelector('#reset--btn').addEventListener('click', resetGame);
 	};
@@ -483,6 +643,24 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		UICtrl.updateBuildingUI(result.building);
 	};
 
+	var buyUpgrade = function(event) {
+		var upgradeName, upgrade, resource, building, result;
+
+		upgradeName = parseEvent(event);
+
+		upgrade = db.getSingleData(upgradeName, 'upgrades');
+		resource = db.getSingleData(upgrade.resource, 'resources');
+		building = db.getSingleData(upgrade.building, 'buildings');
+
+		// buy upgrade
+		result = upgrade.buyUpgrade(resource, building);
+
+		// update UI
+		UICtrl.updateResourceUI(result.resource);
+		UICtrl.updateBuildingUI(result.building);
+		UICtrl.removeUpgrade(upgrade);
+	}
+
 	return {
 		init: function() {
 			// dataButton();
@@ -490,6 +668,7 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 			loadGame();
 			loadResourcesData();
 			loadBuildingsData();
+			loadUpgradesData();
 			setLoop();
 			setEventListener();
 		}

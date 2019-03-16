@@ -1,0 +1,7 @@
+.visible--upgrade {
+	visibility: default;
+}
+
+.invisible--upgrade {
+	visibility: hidden;
+}
