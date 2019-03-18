@@ -7,4 +7,4 @@ A Basic clicker game template made with javascript.
 * ~~autosave~~
 * ~~reset function~~
 * ~~upgrade system~~
-* refactor code
+* ~~refactor code~~
