@@ -125,6 +125,31 @@ var dataController = (function(db) {
 		this.cost = Math.floor(this.initCost * Math.pow(1.1, this.num));
 	};
 
+	Building.prototype.checkPrice = function() {
+		var resource = db.getSingleData(this.resource, 'resources');
+
+		if(resource.num >= this.cost) {
+			return true;
+		} else {
+			return false;
+		}
+	};
+
+	Building.prototype.buyBuilding = function(resource) {
+		if(resource.num >= this.cost) {
+			resource.num -= this.cost;
+			this.num++;
+			resource.calcProd(this.production);
+			this.calculateCost();
+			return {
+				resource: resource,
+				building: this
+			}
+		} else {
+			return 'Not Enough Resources!';
+		}
+	};
+
 	var Upgrade = function(params) {
 		this.name = params.name;
 		this.building = params.building;
@@ -136,11 +161,11 @@ var dataController = (function(db) {
 		this.isBought = false;
 
 		db.getData().upgrades.push(this);
-	}
+	};
 
 	Upgrade.prototype.buyUpgrade = function(resource, building) {
 		if(resource.num >= this.cost) {
-			resource.num = resource.num - this.cost;
+			resource.num -= this.cost;
 			resource.totalProd *= this.upgrade;
 			building.production *= this.upgrade;
 			this.isBought = true;
@@ -153,6 +178,26 @@ var dataController = (function(db) {
 			return 'Not Enough Resources!';
 		}
 	};
+
+	Upgrade.prototype.checkReq = function() {
+		var building = db.getSingleData(this.building, 'buildings');
+
+		if(building.num >= this.req) {
+			return true;
+		} else {
+			return false;
+		}
+	};
+
+	Upgrade.prototype.checkPrice = function() {
+		var resource = db.getSingleData(this.resource, 'resources');
+
+		if(resource.num >= this.cost) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 
 	return {
 
@@ -186,73 +231,11 @@ var dataController = (function(db) {
 			}
 		},
 
-		checkPrices: function(building) {
-			var resources = db.getData().resources;
-
-			for(var x = 0; x < resources.length; x++) {
-				if(building.resource === resources[x].name) {
-					if(resources[x].num >= building.cost) {
-						return true;
-					} else {
-						return false;
-					}
-				}
-			}
-		},
-
-		checkReq: function(upgrade) {
-			var buildings = db.getData().buildings;
-
-			for(var i = 0; i < buildings.length; i++) {
-				if(upgrade.building === buildings[i].name) {
-					if(buildings[i].num >= upgrade.req) {
-						return true;
-					} else {
-						return false;
-					}
-				}
-			}
-		},
-
-		checkUpgradePrices: function(upgrade) {
-			var resources = db.getData().resources;
-
-			for(var i = 0; i < resources.length; i++) {
-				if(upgrade.resource === resources[i].name) {
-					if(resources[i].num >= upgrade.cost) {
-						return true;
-					} else {
-						return false;
-					}
-				}
-			}
-		},
-
 		prodResources: function() {
 			var data = db.getData();
 
 			for(var i = 0; i < data.resources.length; i++) {
 				data.resources[i].produce();
-			}
-		},
-
-		incResource: function(resource) {
-			resource.increment();
-			return resource.num;
-		},
-
-		buyBuilding: function(building, resource) {
-			if(resource.num >= building.cost) {
-				resource.num -= building.cost;
-				building.num++;
-				resource.calcProd(building.production);
-				building.calculateCost();
-				return {
-					building: building,
-					resource: resource
-				}
-			} else {
-				return 'Not enough resources!';
 			}
 		},
 
@@ -519,26 +502,23 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		window.setInterval(function() {
 			totalSec += 10;
 
-			// increment all resources depending on total production every sec
-			dataCtrl.prodResources();
-
-			//update UI
 			for(var i = 0; i < resources.length; i++) {
+				resources[i].produce();
 				UICtrl.updateResourceUI(resources[i]);
 			}
 
 			// constantly check for prices, enable building button if price is met
 			for(var i = 0; i < buildings.length; i++) {
-				isAffordable = dataCtrl.checkPrices(buildings[i]);
+				isAffordable = buildings[i].checkPrice();
 				UICtrl.isClickable(buildings[i], isAffordable);
 			}
 
 			for(var i = 0; i < upgrades.length; i++) {
-				isAvailable = dataCtrl.checkReq(upgrades[i]);
+				isAvailable = upgrades[i].checkReq();
 				UICtrl.upgradeAvailability(upgrades[i], isAvailable);
 
-				isAffordable = dataCtrl.checkUpgradePrices(upgrades[i]);
-				UICtrl.isClickable(upgrades[i], isAffordable)
+				isAffordable = upgrades[i].checkPrice();
+				UICtrl.isClickable(upgrades[i], isAffordable);
 			}
 
 			// autosave every minute
@@ -610,13 +590,13 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 
 	// for incrementing resources
 	var incrementResource = function(event) {
-		var resourceName, resource, currNum;
+		var resourceName, resource;
 
 		resourceName = parseEvent(event);
 		resource = db.getSingleData(resourceName, 'resources');
 
 		// 1. Add 1 to current number of resource
-		currNum = dataCtrl.incResource(resource);
+		resource.increment();
 
 		// 2. Update UI
 		UICtrl.updateResourceUI(resource);
@@ -636,7 +616,7 @@ var mainController = (function(dataCtrl, UICtrl, db) {
 		resource = db.getSingleData(building.resource, 'resources');
 
 		// building buying process(calculation of costs, recalculations, etc.)
-		result = dataCtrl.buyBuilding(building, resource);
+		result = building.buyBuilding(resource);
 
 		// update UI
 		UICtrl.updateResourceUI(result.resource);
