@@ -3,53 +3,74 @@
 	<head>
 		<meta charset="utf-8">
     	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    	<link href="https://fonts.googleapis.com/css?family=Roboto:400,700" rel="stylesheet"> 
 		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 		<link rel="stylesheet" type="text/css" href="style.css">
 		<title>Clicker Prototype</title>
 	</head>
 	<body>
 
-		<div class="container">
+			<section>
 
-			<h1 class="mt-5">Clicker Prototype</h1>
-			<p>version: 1.2.0</p>
+				<div class="container">
 
-			<div id="message--container"></div>
+					<h1>Clicker Prototype</h1>
+					<p>version: 1.2.0</p>
 
-			<button class="btn btn-primary" id="save--btn">Save Game</button>
-			<button class="btn btn-danger" id="delete--btn">Delete Saved Game</button>
-			<!-- <button class="btn btn-danger" id="reset--btn">Reset Game</button> -->
+					<div id="message--container"></div>
 
-			<hr>
-			<h3>Resources:</h3>
-				<div class="row" id="resources--list">
+					<button class="btn btn-primary" id="save--btn">Save Game</button>
+					<button class="btn btn-danger" id="delete--btn">Delete Saved Game</button>
+					<!-- <button class="btn btn-danger" id="reset--btn">Reset Game</button> -->
+
+				</div>
+				
+			</section>
+
+			<section class="bg-light">
+				<div class="container">
+					<h3 class="category">Resources</h3>
+					<div class="row" id="resources--list">
+						<!-- Generated Resource List -->
+					</div>
+				</div>
+			</section>
+
+			<section>
+				<div class="container">
+					<h3 class="category">Get Resources</h3>
+					<div class="row" id="resources--container">
+						<!-- Generated Resource Data -->
+					</div>
+				</div>
+			</section>
+
+			<section class="bg-light">
+				<div class="container">
+					<h3 class="category">Buildings</h3>
+					<div class="row" id="buildings--list">
 					<!-- Generated Resource List -->
+					</div>
 				</div>
-			<hr>
+			</section>
 
-			<h3>Get Resources:</h3>
-			<div class="row" id="resources--container">
-				<!-- Generated Resource Data -->
-			</div>
-
-			<hr>
-			<h2>Buildings:</h2>
-				<div class="row" id="buildings--list">
-				<!-- Generated Resource List -->
+			<section>
+				<div class="container">
+					<h3 class="category">Buy Buildings</h3>
+					<div class="row mb-3" id="buildings--container">
+						<!-- Generated Building Data -->
+					</div>
 				</div>
-			<hr>
-			<h3>Buy Buildings:</h3>
+			</section>
 
-			<div class="row mb-3" id="buildings--container">
-				<!-- Generated Building Data -->
-			</div>
-
-			<hr>
-			<h3>Buy Upgrades:</h3>
-
-			<div class="row mb-3" id="upgrades--container">
-				<!-- Generated Upgrades Data -->
-			</div>
+			<section class="bg-light">
+				<div class="container">
+					<h3 class="category">Buy Upgrades</h3>
+					<div class="row mb-3" id="upgrades--container">
+						<!-- Generated Upgrades Data -->
+					</div>
+				</div>
+			</section>
 			
 		</div>
 
